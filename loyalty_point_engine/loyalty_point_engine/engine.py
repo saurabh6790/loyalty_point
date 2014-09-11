@@ -12,7 +12,8 @@ import itertools
 def initiate_point_engine(sales_invoice_details):
 	valid_rules = get_applicable_rule()
 	rule_details = get_ruel_details(valid_rules)
-	calulate_points(rule_details, sales_invoice_details)
+	if rule_details:
+		calulate_points(rule_details, sales_invoice_details)
 
 def get_applicable_rule():
 	rule_validity_checks_param = {}
@@ -71,21 +72,22 @@ def multiplier_points(rule_details, points_earned):
 def make_point_entry(points_earned, rule_details, sales_invoice_details):
 	# pass
 	create_earned_points_entry(points_earned, rule_details, sales_invoice_details)
-	# create_reddem_points_entry(rule_details, sales_invoice_details)
-	create_jv(sales_invoice_details, points_earned)
+	create_reddem_points_entry(rule_details, sales_invoice_details)
 
 def create_earned_points_entry(points_earned, rule_details, sales_invoice_details):
 	create_point_transaction(sales_invoice_details, 'Earned', points_earned, rule_details)
+	create_jv(sales_invoice_details, points_earned)
 
 def create_reddem_points_entry(rule_details, sales_invoice_details):
-	create_point_transaction(sales_invoice_details)
+	create_point_transaction(sales_invoice_details, 'Redeem')
+	create_jv(sales_invoice_details, points_earned)
 
 def create_point_transaction(sales_invoice_details, type, points=None, rule_details=None):
 	tran = frappe.new_doc("Point Transaction")
 	tran.customer = sales_invoice_details.customer
 	tran.date = today()
 	tran.type = type
-	tran.points = points
+	tran.points = points * 1 if type == 'Entry' else -1
 	tran.valied_upto = '2015-09-1'
 	tran.invoice_number = sales_invoice_details.name
 	tran.docstatus = 1
