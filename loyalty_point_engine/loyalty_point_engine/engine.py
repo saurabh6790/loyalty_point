@@ -8,6 +8,7 @@ from loyalty_point_engine.loyalty_point_engine.doctype.rule.rule import get_vsib
 from frappe.utils.data import today, nowtime, cint
 import time
 import itertools
+from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_jv, get_payable_acc
 
 def initiate_point_engine(sales_invoice_details):
 	valid_rules = get_applicable_rule()
@@ -61,7 +62,10 @@ def calulate_points(rule_details, sales_invoice_details):
 		points_earned += calc_basic_points(rule_details[rule], sales_invoice_details.net_total_export)
 		if rule_details[rule].get('is_lp_mumtiplier') == 1:
 			points_earned = multiplier_points(rule_details[rule], points_earned)
-	make_point_entry(points_earned, rule_details, sales_invoice_details)
+
+	debit_to = get_payable_acc(sales_invoice_details.customer)
+	credit_to = frappe.db.get_value('Company', sales_invoice_details.company, 'default_cash_account')
+	make_point_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to)
 
 def calc_basic_points(rule_details, inv_amount):
 	return rule_details.get('points_earned')*cint(inv_amount/rule_details.get('amount'))
@@ -69,64 +73,26 @@ def calc_basic_points(rule_details, inv_amount):
 def multiplier_points(rule_details, points_earned):
 	return points_earned * cint(rule_details.get('multiplier'))
 
-def make_point_entry(points_earned, rule_details, sales_invoice_details):
-	# pass
-	create_earned_points_entry(points_earned, rule_details, sales_invoice_details)
-	create_reddem_points_entry(rule_details, sales_invoice_details)
+def make_point_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to):
+	create_earned_points_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to)
+	create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to)
 
-def create_earned_points_entry(points_earned, rule_details, sales_invoice_details):
+def create_earned_points_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to):
 	create_point_transaction(sales_invoice_details, 'Earned', points_earned, rule_details)
-	create_jv(sales_invoice_details, points_earned)
+	create_jv(sales_invoice_details, points_earned, debit_to, credit_to)
 
-def create_reddem_points_entry(rule_details, sales_invoice_details):
-	create_point_transaction(sales_invoice_details, 'Redeem')
-	create_jv(sales_invoice_details, points_earned)
+def create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to):
+	debit_to, credit_to = credit_to, debit_to
+	create_point_transaction(sales_invoice_details, 'Redeem', sales_invoice_details.redeem_points)
+	create_jv(sales_invoice_details, sales_invoice_details.redeem_points, debit_to, credit_to)
 
-def create_point_transaction(sales_invoice_details, type, points=None, rule_details=None):
+def create_point_transaction(sales_invoice_details, type, points, rule_details=None):
 	tran = frappe.new_doc("Point Transaction")
 	tran.customer = sales_invoice_details.customer
 	tran.date = today()
 	tran.type = type
-	tran.points = points * 1 if type == 'Entry' else -1
-	tran.valied_upto = '2015-09-1'
+	tran.points = points * 1 if type == 'Earned' else -1 * points
+	tran.valied_upto = '2015-09-01'
 	tran.invoice_number = sales_invoice_details.name
 	tran.docstatus = 1
 	tran.insert()
-
-def create_jv(sales_invoice_details, points_earned):
-	
-	jv = frappe.new_doc("Journal Voucher")
-	jv.naming_series = 'JV-'
-	jv.voucher_type = 'Journal Entry'
-	jv.posting_date = today()
-	jv.user_remark = "Loyalty Point against sales %s "%sales_invoice_details.name
-	jv.save()
-
-	jvd = frappe.new_doc("Journal Voucher Detail")
-	jvd.account = get_payable_acc(sales_invoice_details.customer)
-	jvd.debit = points_earned
-	jvd.cost_center = frappe.db.get_value('Company', sales_invoice_details.company, 'cost_center')
-	jvd.is_advance = 'No'
-	jvd.parentfield = 'entries'
-	jvd.parenttype = 'Journal Voucher'
-	jvd.parent = jv.name
-	jvd.save()
-
-	jvd1 = frappe.new_doc("Journal Voucher Detail")
-	jvd1.account = frappe.db.get_value('Company', sales_invoice_details.company, 'default_cash_account')
-	jvd1.credit = points_earned
-	jvd1.cost_center = frappe.db.get_value('Company', sales_invoice_details.company, 'cost_center')
-	jvd1.is_advance = 'No'
-	jvd1.parentfield = 'entries'
-	jvd1.parenttype = 'Journal Voucher'
-	jvd1.parent = jv.name
-	jvd1.save()
-
-	ujv = frappe.get_doc("Journal Voucher", jv.name)
-	ujv.total_credit  = jv.total_debit = points_earned
-	ujv.submit()
-
-def get_payable_acc(customer):
-	return frappe.db.sql("""select name from tabAccount 
-		where parent_account like '%%%s%%'
-		and master_name = '%s'"""%('Accounts Payable', customer), as_list=1 , debug=1)[0][0]
