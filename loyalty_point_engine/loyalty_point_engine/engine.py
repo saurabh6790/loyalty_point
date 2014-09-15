@@ -58,14 +58,16 @@ def get_ruel_details(rules):
 
 def calulate_points(rule_details, sales_invoice_details):
 	points_earned = 0
+	referral_points = 0
 	for rule in rule_details:
 		points_earned += calc_basic_points(rule_details[rule], sales_invoice_details.net_total_export)
+		referral_points += calc_referral_points(rule_details[rule])
 		if rule_details[rule].get('is_lp_mumtiplier') == 1:
 			points_earned = multiplier_points(rule_details[rule], points_earned)
 
-	debit_to = get_payable_acc(sales_invoice_details.customer)
-	credit_to = frappe.db.get_value('Company', sales_invoice_details.company, 'default_cash_account')
+	debit_to, credit_to = get_accouts(sales_invoice_details.customer, sales_invoice_details.company)
 	make_point_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to)
+	make_referred_points_entry(sales_invoice_details, referral_points)
 
 def calc_basic_points(rule_details, inv_amount):
 	return rule_details.get('points_earned')*cint(inv_amount/rule_details.get('amount'))
@@ -73,26 +75,39 @@ def calc_basic_points(rule_details, inv_amount):
 def multiplier_points(rule_details, points_earned):
 	return points_earned * cint(rule_details.get('multiplier'))
 
+def calc_referral_points(rule_details):
+	return cint(rule_details.get('referred_points'))
+
 def make_point_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to):
 	create_earned_points_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to)
 	create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to)
 
 def create_earned_points_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to):
-	create_point_transaction(sales_invoice_details, 'Earned', points_earned, rule_details)
+	create_point_transaction('Customer', sales_invoice_details.customer, sales_invoice_details.name,  'Earned', points_earned, rule_details)
 	create_jv(sales_invoice_details, points_earned, debit_to, credit_to)
 
 def create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to):
 	debit_to, credit_to = credit_to, debit_to
-	create_point_transaction(sales_invoice_details, 'Redeem', sales_invoice_details.redeem_points)
+	create_point_transaction('Customer', sales_invoice_details.customer, sales_invoice_details.name, 'Redeem', sales_invoice_details.redeem_points)
 	create_jv(sales_invoice_details, sales_invoice_details.redeem_points, debit_to, credit_to)
 
-def create_point_transaction(sales_invoice_details, type, points, rule_details=None):
+def create_point_transaction(ref_link, ref_name, inv, type, points, rule_details=None):
+	frappe.errprint(ref_name)
 	tran = frappe.new_doc("Point Transaction")
-	tran.customer = sales_invoice_details.customer
+	tran.ref_link = ref_link
+	tran.ref_name = ref_name	
 	tran.date = today()
 	tran.type = type
 	tran.points = points * 1 if type == 'Earned' else -1 * points
 	tran.valied_upto = '2015-09-01'
-	tran.invoice_number = sales_invoice_details.name
+	tran.invoice_number = inv
 	tran.docstatus = 1
 	tran.insert()
+
+def make_referred_points_entry(sales_invoice_details, referral_points):
+	create_point_transaction(sales_invoice_details.referral, sales_invoice_details.referral_name, sales_invoice_details.name, 'Earned', referral_points)
+	debit_to, credit_to = get_accouts(sales_invoice_details.referral_name, sales_invoice_details.company)
+	create_jv(sales_invoice_details, referral_points, debit_to, credit_to)
+
+def get_accouts(party, company):
+	return get_payable_acc(party), frappe.db.get_value('Company', company, 'default_cash_account')

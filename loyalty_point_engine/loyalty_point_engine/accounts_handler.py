@@ -1,14 +1,15 @@
 # Copyright (c) 2013, Saurabh and contributors
 # For license information, please see license.txt
 
-from __future__ import unicode_literals
+# from __future__ import unicode_literals
 import frappe
 from frappe import _
 from loyalty_point_engine.loyalty_point_engine.doctype.rule.rule import get_vsibility_setting
 from frappe.utils.data import today, nowtime, cint
 import time
+from erpnext.accounts.utils import get_balance_on
 
-def create_jv(sales_invoice_details, earned_redeemed_points, debit_to, credit_to):
+def create_jv(voucher_details, earned_redeemed_points, debit_to, credit_to):
 	"""
 		Here we create Journal Voucher for two purpose, 
 		1. Earned Point Allocation
@@ -22,13 +23,13 @@ def create_jv(sales_invoice_details, earned_redeemed_points, debit_to, credit_to
 	jv.naming_series = 'JV-'
 	jv.voucher_type = 'Journal Entry'
 	jv.posting_date = today()
-	jv.user_remark = "Loyalty Point against sales %s "%sales_invoice_details.name
+	jv.user_remark = "Loyalty Points: %s "%voucher_details.name
 	jv.save()
 
 	jvd = frappe.new_doc("Journal Voucher Detail")
 	jvd.account = debit_to
 	jvd.debit = earned_redeemed_points
-	jvd.cost_center = frappe.db.get_value('Company', sales_invoice_details.company, 'cost_center')
+	jvd.cost_center = frappe.db.get_value('Company', voucher_details.company, 'cost_center')
 	jvd.is_advance = 'No'
 	jvd.parentfield = 'entries'
 	jvd.parenttype = 'Journal Voucher'
@@ -38,7 +39,7 @@ def create_jv(sales_invoice_details, earned_redeemed_points, debit_to, credit_to
 	jvd1 = frappe.new_doc("Journal Voucher Detail")
 	jvd1.account = credit_to
 	jvd1.credit = earned_redeemed_points
-	jvd1.cost_center = frappe.db.get_value('Company', sales_invoice_details.company, 'cost_center')
+	jvd1.cost_center = frappe.db.get_value('Company', voucher_details.company, 'cost_center')
 	jvd1.is_advance = 'No'
 	jvd1.parentfield = 'entries'
 	jvd1.parenttype = 'Journal Voucher'
@@ -76,3 +77,10 @@ def create_account_head(doc):
 		}).insert(ignore_permissions=True)
 
 		frappe.msgprint(_("Account Created: {0}").format(account.name))
+
+def manage_accounts(customer):
+	debit_to = get_payable_acc(customer.name) 
+	credit_to = get_payable_acc(customer.lead_name)
+	points = get_balance_on(credit_to)
+	details = type('new_dict', (object,), {"name": "Point Adjusment" ,  "company" : customer.company})
+	create_jv(details, points, debit_to, credit_to)
