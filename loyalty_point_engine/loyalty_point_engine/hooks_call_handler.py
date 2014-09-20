@@ -7,7 +7,7 @@ from erpnext.accounts.party import create_party_account
 from frappe import _
 from frappe.utils import cint
 from loyalty_point_engine.loyalty_point_engine.engine import initiate_point_engine
-from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_account_head, manage_accounts
+from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_account_head, manage_accounts_and_lead
 from loyalty_point_engine.loyalty_point_engine.custom_script_handler import create_lead
 
 def referral_management(doc, method):
@@ -16,8 +16,8 @@ def referral_management(doc, method):
 			lead = create_lead(doc)
 			create_account_head(lead)
 
-		if doc.lead_name:
-			manage_accounts(doc)
+	if doc.lead_name:
+		manage_accounts_and_lead(doc)
 
 def create_acc_payable_head(doc, method):
 	if not doc.get('__islocal') and doc.get('__islocal') != None:

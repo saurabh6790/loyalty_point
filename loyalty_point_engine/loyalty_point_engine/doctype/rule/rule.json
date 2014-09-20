@@ -80,6 +80,37 @@
    "permlevel": 0
   }, 
   {
+   "description": "Referral get points only for specified number of transaction", 
+   "fieldname": "transaction_limit", 
+   "fieldtype": "Int", 
+   "label": "Transaction Limit", 
+   "permlevel": 0, 
+   "precision": ""
+  }, 
+  {
+   "fieldname": "mode_of_payments", 
+   "fieldtype": "Section Break", 
+   "label": "Mode Of Payments", 
+   "permlevel": 0, 
+   "precision": ""
+  }, 
+  {
+   "fieldname": "modes", 
+   "fieldtype": "HTML", 
+   "label": "Modes", 
+   "permlevel": 0, 
+   "precision": ""
+  }, 
+  {
+   "fieldname": "payment_modes", 
+   "fieldtype": "Table", 
+   "hidden": 1, 
+   "label": "Payment Modes", 
+   "options": "Payment Modes", 
+   "permlevel": 0, 
+   "precision": ""
+  }, 
+  {
    "fieldname": "validity_settings", 
    "fieldtype": "Section Break", 
    "label": "Validity Settings", 
@@ -122,7 +153,7 @@
  "is_submittable": 0, 
  "issingle": 0, 
  "istable": 0, 
- "modified": "2014-09-04 20:40:30.011081", 
+ "modified": "2014-09-20 11:00:34.971055", 
  "modified_by": "Administrator", 
  "module": "Loyalty Point Engine", 
  "name": "Rule", 

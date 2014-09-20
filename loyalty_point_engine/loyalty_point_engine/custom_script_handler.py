@@ -24,7 +24,6 @@ def get_referral(doctype, txt, searchfield, start, page_len, filters):
 			'page_len': page_len
 		})
 
-
 def create_lead(doc):
 	lead = frappe.new_doc("Lead")
 	lead.lead_name =  doc.referral_name
@@ -35,3 +34,7 @@ def create_lead(doc):
 
 def post_lead_creation(doc, lead):
 	frappe.db.sql(" update tabCustomer set referral_lead = '%s' where name = '%s'"%(lead.name, doc.name))
+
+@frappe.whitelist()
+def get_payment_modes():
+	return frappe.db.sql("select name from `tabMode of Payment`", as_list=1)
