@@ -7,7 +7,7 @@ from erpnext.accounts.party import create_party_account
 from frappe import _
 from frappe.utils import cint
 from loyalty_point_engine.loyalty_point_engine.engine import initiate_point_engine
-from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_account_head, manage_accounts_and_lead
+from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_account_head, manage_accounts_and_lead, make_gl_entry
 from loyalty_point_engine.loyalty_point_engine.custom_script_handler import create_lead
 
 def referral_management(doc, method):
@@ -24,15 +24,21 @@ def create_acc_payable_head(doc, method):
 		create_account_head(doc)
 
 def grab_invoice_details(doc, method):
-	point_validation(doc)
+	if doc.redeem_points:
+		point_validation(doc)
+		make_gl_entry(doc)
 	initiate_point_engine(doc)
 
 def point_validation(doc):
-	limit_exceed(doc.total_earned_points, doc.redeem_points)
+	limit_exceed(doc.total_earned_points, doc.redeem_points, doc.net_total_export)
 
-def limit_exceed(earned_points, redeem_points):
-	if redeem_points > earned_points:
+def limit_exceed(earned_points, redeem_points, net_total_export):
+	if cint(redeem_points) > cint(earned_points):
 		frappe.msgprint(" Redeemption limit exceeded ", raise_exception=1)
+	if cint(redeem_points) < 0:
+		frappe.msgprint(" Negative points redeemption not allowed", raise_exception=1)
+	if cint(redeem_points) > cint(net_total_export):
+		frappe.msgprint(" Can't redeem more points than net total", raise_exception=1)
 
 @frappe.whitelist()
 def get_points(customer):

@@ -9,7 +9,7 @@ from frappe.utils.data import today, nowtime, cint
 import time
 from erpnext.accounts.utils import get_balance_on
 
-def create_jv(voucher_details, earned_redeemed_points, debit_to, credit_to):
+def create_jv(voucher_details, earned_redeemed_points, debit_to, credit_to, adj_outstanding=False):
 	"""
 		Here we create Journal Voucher for two purpose, 
 		1. Earned Point Allocation
@@ -43,6 +43,7 @@ def create_jv(voucher_details, earned_redeemed_points, debit_to, credit_to):
 	jvd1.is_advance = 'No'
 	jvd1.parentfield = 'entries'
 	jvd1.parenttype = 'Journal Voucher'
+	jvd1.against_invoice = voucher_details.name if adj_outstanding else ""
 	jvd1.parent = jv.name
 	jvd1.save()
 
@@ -111,3 +112,8 @@ def update_point_transactions(customer):
 				prev_link = '%s' 
 			where name = '%s' """%(customer.name, customer.lead_name, transacrion[0]))
 		frappe.db.commit()
+
+def make_gl_entry(si):
+	amt = cint(si.net_total_export) - cint(si.redeem_points)
+	create_jv(si, amt, frappe.db.get_value('Company', si.company, 'default_income_account'), si.debit_to, adj_outstanding=True)
+	

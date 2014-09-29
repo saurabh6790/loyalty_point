@@ -63,7 +63,7 @@
    "description": "If checked then points will be multiplier with Loyalty Points, i..e 5 (Multiplier) X 100 (LP) = 500 Total LP", 
    "fieldname": "is_lp_mumtiplier", 
    "fieldtype": "Check", 
-   "label": "is LP Mumtiplier", 
+   "label": "is LP Multiplier", 
    "permlevel": 0
   }, 
   {
@@ -84,6 +84,16 @@
    "fieldname": "transaction_limit", 
    "fieldtype": "Int", 
    "label": "Transaction Limit", 
+   "permlevel": 0, 
+   "precision": ""
+  }, 
+  {
+   "default": "", 
+   "description": "Number entered here will considered as Months", 
+   "fieldname": "valid_upto", 
+   "fieldtype": "Data", 
+   "label": "Valid Upto", 
+   "options": "", 
    "permlevel": 0, 
    "precision": ""
   }, 
@@ -153,7 +163,7 @@
  "is_submittable": 0, 
  "issingle": 0, 
  "istable": 0, 
- "modified": "2014-09-20 11:00:34.971055", 
+ "modified": "2014-09-29 20:09:43.746335", 
  "modified_by": "Administrator", 
  "module": "Loyalty Point Engine", 
  "name": "Rule", 

@@ -83,7 +83,7 @@
   {
    "allow_on_submit": 0, 
    "fieldname": "valied_upto", 
-   "fieldtype": "Date", 
+   "fieldtype": "Data", 
    "hidden": 0, 
    "ignore_user_permissions": 0, 
    "in_filter": 0, 
@@ -151,7 +151,7 @@
  "is_submittable": 1, 
  "issingle": 0, 
  "istable": 0, 
- "modified": "2014-09-20 09:28:26.928435", 
+ "modified": "2014-09-29 20:08:40.011118", 
  "modified_by": "Administrator", 
  "module": "Loyalty Point Engine", 
  "name": "Point Transaction", 

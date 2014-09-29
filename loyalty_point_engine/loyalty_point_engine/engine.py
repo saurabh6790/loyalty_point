@@ -6,6 +6,7 @@ import frappe
 from frappe import _
 import time
 import itertools
+from frappe.utils import getdate, add_months, nowdate
 from frappe.utils.data import today, nowtime, cint, cstr
 from loyalty_point_engine.loyalty_point_engine.doctype.rule.rule import get_vsibility_setting
 from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_jv, get_payable_acc
@@ -53,7 +54,7 @@ def get_ruel_details(rules):
 	rule_details = {}
 	for rule in rules:
 		rule_details[rule] = frappe.db.sql(""" select amount, points_earned, is_lp_mumtiplier, referred_points, 
-			multiplier, ifnull(group_concat(pm.mode),'') as payment_modes, ifnull(transaction_limit, 999999999) as transaction_limit
+			multiplier, ifnull(group_concat(pm.mode),'') as payment_modes, ifnull(transaction_limit, 999999999) as transaction_limit, ifnull(valid_upto, '6') as valid_upto
 			from `tabRule` r, `tabPayment Modes` pm 
 			where r.name = '%(rule_name)s' 
 			and pm.parent = '%(rule_name)s'"""%{'rule_name': rule}, as_dict=1)[0]
@@ -62,20 +63,21 @@ def get_ruel_details(rules):
 def calulate_points(rule_details, sales_invoice_details):
 	points_earned = 0
 	referral_points = 0
+	debit_to, credit_to = get_accouts(sales_invoice_details.customer, sales_invoice_details.company)
+	frappe.errprint(rule_details)
 	for rule in rule_details:
 		rule_based_points = 0
 		if valid_payment_modes(rule_details[rule], sales_invoice_details):
-			rule_based_points += calc_basic_points(rule_details[rule], sales_invoice_details.net_total_export)
+			rule_based_points += calc_basic_points(rule_details[rule], cint(sales_invoice_details.net_total_export)-cint(sales_invoice_details.redeem_points))
 			if rule_details[rule].get('is_lp_mumtiplier') == 1:
 				rule_based_points = multiplier_points(rule_details[rule], rule_based_points)
+			make_point_entry(rule_based_points, rule_details[rule], sales_invoice_details, debit_to, credit_to)
 
 		if within_referral_count(sales_invoice_details, rule_details[rule]) == 1:
 			referral_points += calc_referral_points(rule_details[rule])
-
 		points_earned += rule_based_points
 
-	debit_to, credit_to = get_accouts(sales_invoice_details.customer, sales_invoice_details.company)
-	make_point_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to)
+	create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to)
 	make_referred_points_entry(sales_invoice_details, referral_points)
 
 def valid_payment_modes(rule_details, sales_invoice_details):
@@ -111,9 +113,9 @@ def calc_referral_points(rule_details):
 
 def make_point_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to):
 	create_earned_points_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to)
-	create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to)
-
+	
 def create_earned_points_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to):
+	frappe.errprint(rule_details)
 	create_point_transaction('Customer', sales_invoice_details.customer, sales_invoice_details.name,  'Earned', points_earned, rule_details)
 	create_jv(sales_invoice_details, points_earned, debit_to, credit_to)
 
@@ -122,15 +124,16 @@ def create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, cr
 	create_point_transaction('Customer', sales_invoice_details.customer, sales_invoice_details.name, 'Redeem', sales_invoice_details.redeem_points)
 	create_jv(sales_invoice_details, sales_invoice_details.redeem_points, debit_to, credit_to)
 
-def create_point_transaction(ref_link, ref_name, inv, type, points, rule_details=None):
+def create_point_transaction(ref_link, ref_name, inv, tran_type, points, rule_details=None):
 	if points != 0:
 		tran = frappe.new_doc("Point Transaction")
 		tran.ref_link = ref_link
 		tran.ref_name = ref_name	
 		tran.date = today()
-		tran.type = type
-		tran.points = cint(points) * 1 if type == 'Earned' else -1 * cint(points)
-		tran.valied_upto = '2015-09-01'
+		tran.type = tran_type
+		tran.points = cint(points) * 1 if tran_type == 'Earned' else -1 * cint(points)
+		if rule_details: 
+			tran.valied_upto = add_months(nowdate(), cint(rule_details.get('valid_upto'))) 
 		tran.invoice_number = inv
 		tran.rule_details = cstr(rule_details)
 		tran.docstatus = 1
