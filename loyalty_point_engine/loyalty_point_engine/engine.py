@@ -81,11 +81,8 @@ def calulate_points(rule_details, sales_invoice_details):
 	make_referred_points_entry(sales_invoice_details, referral_points)
 
 def valid_payment_modes(rule_details, sales_invoice_details):
-	if sales_invoice_details.is_multi_mode__ != 1:
-		return check_modes(rule_details, [sales_invoice_details.mode_of_payment])
-	else:
-		modes = get_applied_payment_modes(sales_invoice_details.payment_details)
-		return check_modes(rule_details, modes)
+	modes = get_applied_payment_modes(sales_invoice_details.payment_details)
+	return check_modes(rule_details, modes)
 
 def get_applied_payment_modes(payment_details):
 	modes = []

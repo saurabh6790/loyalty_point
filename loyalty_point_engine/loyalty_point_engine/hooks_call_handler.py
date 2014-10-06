@@ -7,8 +7,8 @@ from erpnext.accounts.party import create_party_account
 from frappe import _
 from frappe.utils import cint
 from loyalty_point_engine.loyalty_point_engine.engine import initiate_point_engine
-from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_account_head, manage_accounts_and_lead, make_gl_entry
-from loyalty_point_engine.loyalty_point_engine.custom_script_handler import create_lead
+from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_account_head, manage_accounts_and_lead, make_gl_entry, cancle_jv
+from loyalty_point_engine.loyalty_point_engine.custom_script_handler import create_lead, cancle_point_transactions
 
 def referral_management(doc, method):
 	if not doc.get('__islocal') and doc.get('__islocal') != None:
@@ -55,3 +55,7 @@ def get_referral(customer):
 	return {
 		"referral": ((len(referral_name[0]) > 1) and referral_name[0] or referral_name[0][0]) if referral_name else None
 	}
+
+def cancle_points_and_jv(doc, method):
+	cancle_jv(doc)
+	cancle_point_transactions(doc)

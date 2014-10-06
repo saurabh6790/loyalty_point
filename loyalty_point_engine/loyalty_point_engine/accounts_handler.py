@@ -116,4 +116,12 @@ def update_point_transactions(customer):
 def make_gl_entry(si):
 	amt = cint(si.net_total_export) - cint(si.redeem_points)
 	create_jv(si, amt, frappe.db.get_value('Company', si.company, 'default_income_account'), si.debit_to, adj_outstanding=True)
+
+def cancle_jv(si):
+	for jv in frappe.db.sql("""select name from `tabJournal Voucher` 
+			where user_remark like '%%%s%%' 
+			and docstatus = 1"""%(si.name),as_list=1):
+		frappe.errprint(jv)
+		c_jc = frappe.get_doc("Journal Voucher", jv[0])
+		c_jc.make_gl_entries(cancel=1, adv_adj=1)
 	

@@ -38,3 +38,10 @@ def post_lead_creation(doc, lead):
 @frappe.whitelist()
 def get_payment_modes():
 	return frappe.db.sql("select name from `tabMode of Payment`", as_list=1)
+
+
+def cancle_point_transactions(si):
+	frappe.db.sql("""update `tabPoint Transaction` set docstatus = 2 where invoice_number = '%s'"""%(si.name))
+	frappe.db.sql("""commit""")
+		
+		
