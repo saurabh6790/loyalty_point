@@ -11,11 +11,11 @@ from frappe.utils.data import today, nowtime, cint, cstr
 from loyalty_point_engine.loyalty_point_engine.doctype.rule.rule import get_vsibility_setting
 from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_jv, get_payable_acc
 
-def initiate_point_engine(sales_invoice_details):
+def initiate_point_engine(journal_voucher, sales_invoice_details):
 	valid_rules = get_applicable_rule()
 	rule_details = get_ruel_details(valid_rules)
 	if rule_details:
-		calulate_points(rule_details, sales_invoice_details)
+		calulate_points(rule_details, journal_voucher, sales_invoice_details)
 
 def get_applicable_rule():
 	rule_validity_checks_param = {}
@@ -60,17 +60,20 @@ def get_ruel_details(rules):
 			and pm.parent = '%(rule_name)s'"""%{'rule_name': rule}, as_dict=1)[0]
 	return rule_details
 
-def calulate_points(rule_details, sales_invoice_details):
+def calulate_points(rule_details, journal_voucher, sales_invoice_details):
 	points_earned = 0
 	referral_points = 0
+	valid_modes = []
 	debit_to, credit_to = get_accouts(sales_invoice_details.customer, sales_invoice_details.company)
 	frappe.errprint(rule_details)
 	for rule in rule_details:
 		rule_based_points = 0
-		if valid_payment_modes(rule_details[rule], sales_invoice_details):
-			rule_based_points += calc_basic_points(rule_details[rule], cint(sales_invoice_details.net_total_export)-cint(sales_invoice_details.redeem_points))
+		valid_modes = valid_payment_modes(rule_details[rule], journal_voucher)
+		if valid_modes:
+			rule_based_points += calc_basic_points(rule_details[rule], something(valid_modes, journal_voucher))
 			if rule_details[rule].get('is_lp_mumtiplier') == 1:
 				rule_based_points = multiplier_points(rule_details[rule], rule_based_points)
+			frappe.errprint(rule_based_points)
 			make_point_entry(rule_based_points, rule_details[rule], sales_invoice_details, debit_to, credit_to)
 
 		if within_referral_count(sales_invoice_details, rule_details[rule]) == 1:
@@ -80,8 +83,8 @@ def calulate_points(rule_details, sales_invoice_details):
 	create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to)
 	make_referred_points_entry(sales_invoice_details, referral_points)
 
-def valid_payment_modes(rule_details, sales_invoice_details):
-	modes = get_applied_payment_modes(sales_invoice_details.payment_details)
+def valid_payment_modes(rule_details, journal_voucher):
+	modes = get_applied_payment_modes(journal_voucher.entries)
 	return check_modes(rule_details, modes)
 
 def get_applied_payment_modes(payment_details):
@@ -144,3 +147,10 @@ def make_referred_points_entry(sales_invoice_details, referral_points):
 
 def get_accouts(party, company):
 	return get_payable_acc(party), frappe.db.get_value('Company', company, 'default_cash_account')
+
+def something(valid_modes, journal_voucher):
+	total = 0
+	for entry in journal_voucher.entries:
+		if entry.mode in valid_modes:
+			total += cint(entry.credit)
+	return total

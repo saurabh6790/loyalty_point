@@ -10,6 +10,17 @@ from loyalty_point_engine.loyalty_point_engine.engine import initiate_point_engi
 from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_account_head, manage_accounts_and_lead, make_gl_entry, cancle_jv
 from loyalty_point_engine.loyalty_point_engine.custom_script_handler import create_lead, cancle_point_transactions
 
+def grab_jv_and_invoice_details(doc, method):
+	si = get_invoice_details(doc.get('entries'))
+	if si:
+		initiate_point_engine(doc, si)
+
+def get_invoice_details(entries):
+	for entry in entries:
+		if entry.against_invoice:
+			return frappe.get_doc('Sales Invoice', entry.against_invoice)
+			break
+
 def referral_management(doc, method):
 	if not doc.get('__islocal') and doc.get('__islocal') != None:
 		if doc.referral_name:

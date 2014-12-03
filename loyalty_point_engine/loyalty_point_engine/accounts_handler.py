@@ -123,5 +123,5 @@ def cancle_jv(si):
 			and docstatus = 1"""%(si.name),as_list=1):
 		frappe.errprint(jv)
 		c_jc = frappe.get_doc("Journal Voucher", jv[0])
-		c_jc.make_gl_entries(cancel=1, adv_adj=1)
+		c_jc.make_gl_entries(1)
 	
