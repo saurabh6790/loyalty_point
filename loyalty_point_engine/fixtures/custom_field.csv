@@ -18,6 +18,11 @@
 "Type:","Data (text)","Link","Select","Data","Select","Select","Text","Text","Data","Int","Check","Check","Check","Data","Text","Check","Data","Check","Check","Check","Check","Check","Check"
 "Info:","","Valid DocType","One of: Button, Check, Code, Column Break, Currency, Data, Date, Datetime, Dynamic Link, Float, HTML, Image, Int, Link, Long Text, Password, Percent, Read Only, Section Break, Select, Small Text, Table, Text, Text Editor, Time","","","One of: 1, 2, 3, 4, 5, 6","","","","Integer","0 or 1","0 or 1","0 or 1","","","0 or 1","","0 or 1","0 or 1","0 or 1","0 or 1","0 or 1","0 or 1"
 "Start entering data below this line"
+"","""Journal Voucher Detail-mode""","Journal Voucher Detail","Link","Mode","balance","","Mode of Payment","","mode",0,0,0,0,"","",0,"",0,0,0,0,0,0
+"","""Fund Management-workflow_state""","Fund Management","Link","Workflow State","","","Workflow State","","workflow_state",0,0,0,0,"","",1,"",0,0,0,0,0,0
+"","""Customer-customer_phone_number""","Customer","Data","Customer Phone Number","territory","","","","customer_phone_number",0,0,0,0,"","",0,"",0,0,0,0,0,0
+"","""Customer-agent_association_id""","Customer","Data","Agent Association Id","lead_name","","","","agent_association_id",0,0,0,0,"","",0,"",0,0,0,0,0,0
+"","""Country-country_code""","Country","Data","Country Code","code","","","","country_code",0,0,0,0,"","",0,"",0,0,0,0,0,0
 "","""Sales Invoice-payment_details""","Sales Invoice","Table","Payment Details","net_total_export","","Payment Mode Details","","payment_details",0,0,0,0,"","",0,"",0,0,0,0,0,0
 "","""Sales Invoice-is_multi_mode__""","Sales Invoice","Check","IS Multi Mode  ","contact_email","","","","is_multi_mode__",0,0,0,0,"","",0,"",0,0,0,0,0,0
 "","""Sales Invoice-referral_name""","Sales Invoice","Dynamic Link","Referral Name","referral","","referral","","referral_name",0,0,0,0,"","",0,"",0,0,0,0,0,0
