@@ -15,11 +15,12 @@ def get_vsibility_setting(rule_type, only_visble_fields=0):
 		where name = '%s'"""%rule_type, as_dict=1)
 	hide_field_list, unhide_field_list = [], []
 
-	for field in field_dict[0]:
-		if field_dict[0].get(field) == 0 or field_dict[0].get(field) == None:
-			hide_field_list.append(field)
-		if field_dict[0].get(field) == 1:
-			unhide_field_list.append(field)
+	if len(field_dict) > 0:
+		for field in field_dict[0]:
+			if field_dict[0].get(field) == 0 or field_dict[0].get(field) == None:
+				hide_field_list.append(field)
+			if field_dict[0].get(field) == 1:
+				unhide_field_list.append(field)
 
 	if only_visble_fields == 1:
 		return unhide_field_list
