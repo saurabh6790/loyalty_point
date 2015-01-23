@@ -31,8 +31,8 @@ def referral_management(doc, method):
 		manage_accounts_and_lead(doc)
 
 def create_acc_payable_head(doc, method):
-	if not doc.get('__islocal') and doc.get('__islocal') != None:
-		create_account_head(doc)
+	# if not doc.get('__islocal') and doc.get('__islocal') != None:
+	create_account_head(doc)
 
 def grab_invoice_details(doc, method):
 	if doc.redeem_points:
