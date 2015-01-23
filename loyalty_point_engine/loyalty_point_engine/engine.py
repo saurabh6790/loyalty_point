@@ -80,7 +80,7 @@ def calulate_points(rule_details, journal_voucher, sales_invoice_details):
 			referral_points += calc_referral_points(rule_details[rule])
 		points_earned += rule_based_points
 
-	create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to)
+	create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to, journal_voucher)
 	make_referred_points_entry(sales_invoice_details, referral_points)
 
 def valid_payment_modes(rule_details, journal_voucher):
@@ -119,10 +119,13 @@ def create_earned_points_entry(points_earned, rule_details, sales_invoice_detail
 	create_point_transaction('Customer', sales_invoice_details.customer, sales_invoice_details.name,  'Earned', points_earned, rule_details)
 	create_jv(sales_invoice_details, points_earned, debit_to, credit_to)
 
-def create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to):
+def create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to, journal_voucher):
 	debit_to, credit_to = credit_to, debit_to
-	create_point_transaction('Customer', sales_invoice_details.customer, sales_invoice_details.name, 'Redeem', sales_invoice_details.redeem_points)
-	create_jv(sales_invoice_details, sales_invoice_details.redeem_points, debit_to, credit_to)
+	for entry in journal_voucher.entries:
+		frappe.errprint(entry.mode)
+		if entry.mode == "Redeem":
+			create_point_transaction('Customer', sales_invoice_details.customer, entry.against_invoice, 'Redeem', entry.credit)
+			create_jv(sales_invoice_details, sales_invoice_details.redeem_points, debit_to, credit_to)
 
 def create_point_transaction(ref_link, ref_name, inv, tran_type, points, rule_details=None):
 	if points != 0:
