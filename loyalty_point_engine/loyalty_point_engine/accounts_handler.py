@@ -54,15 +54,24 @@ def create_jv(voucher_details, earned_redeemed_points, debit_to, credit_to, adj_
 def get_payable_acc(customer):
 	return frappe.db.sql("""select name from tabAccount 
 		where parent_account like '%%%s%%'
-		and master_name = '%s'"""%('Accounts Payable', customer), as_list=1 , debug=1)[0][0]
+		and master_name = '%s'"""%('Indirect Expenses', customer), as_list=1 )[0][0]
+
+def get_marketing_account(company):
+	abbr = frappe.db.get_value("Company", company, "abbr")
+	if cint(frappe.db.sql("""select 
+			if( exists(select * from tabAccount 
+				where name = '%s'), 1, 0) """%"Marketing Expenses - %s"%abbr, as_list=1)[0][0]):
+		return "Marketing Expenses - %s"%abbr
+	else:
+		frappe.throw(_("Marketing Account not exist. Please create Marketing Account under Indirect Expenses Account"))
 
 def create_account_head(doc):
+	# This is libility account head and which is used to capture the loyality points against the customer
 	party_type = ''
 	company_details = frappe.db.get_value("Company", doc.company,
 		["abbr", "receivables_group", "payables_group"], as_dict=True)
 	if not frappe.db.exists("Account", (doc.name + " - lpt" + " - " + company_details.abbr)):
-		parent_account = company_details.receivables_group \
-			if party_type=="Customer" else company_details.payables_group
+		parent_account = "Indirect Expenses - " + company_details.abbr
 		if not parent_account:
 			frappe.throw(_("Please enter Account Receivable/Payable group in company master"))
 		# create
@@ -100,7 +109,7 @@ def update_ref(cust):
 def update_cutomer_doc(new_cust, lead_name, customer):
 	frappe.db.sql("""update tabCustomer set is_existing_customer = 'Yes',
 			referral = '%s', referral_name = '', phone_number = '', referral_lead = ''
-			where name = '%s' and ifnull(lead_name,'') """%(new_cust, customer[0], lead_name),debug=1)
+			where name = '%s' and ifnull(lead_name,'') """%(new_cust, customer[0], lead_name))
 	frappe.db.commit()
 
 def update_point_transactions(customer):
@@ -123,5 +132,8 @@ def cancle_jv(si):
 			and docstatus = 1"""%(si.name),as_list=1):
 		frappe.errprint(jv)
 		c_jc = frappe.get_doc("Journal Voucher", jv[0])
-		c_jc.make_gl_entries(1)
+		c_jc.cancel()
+		# c_jc.make_gl_entries(1)
+		# frappe.db.sql("update `tabJournal Voucher` set docstatus = 1 where name = '%s'"%jv[0])
+
 	

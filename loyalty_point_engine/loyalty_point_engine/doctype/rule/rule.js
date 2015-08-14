@@ -50,7 +50,6 @@ frappe.PaymentModes = Class.extend({
 	},
 	show_roles: function() {
 		var me = this;
-		console.log($(this.wrapper))
 		$(this.wrapper).empty();
 		// var mode_toolbar = $('<p><button class="btn btn-default btn-add"></button>\
 		// 	<button class="btn btn-default btn-remove"></button></p>').appendTo($(this.wrapper));

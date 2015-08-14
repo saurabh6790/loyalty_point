@@ -163,7 +163,7 @@
  "is_submittable": 0, 
  "issingle": 0, 
  "istable": 0, 
- "modified": "2014-09-29 20:09:43.746335", 
+ "modified": "2015-03-07 06:00:29.147378", 
  "modified_by": "Administrator", 
  "module": "Loyalty Point Engine", 
  "name": "Rule", 
@@ -186,6 +186,13 @@
    "role": "Administrator", 
    "set_user_permissions": 0, 
    "submit": 0, 
+   "write": 1
+  }, 
+  {
+   "create": 1, 
+   "permlevel": 0, 
+   "read": 1, 
+   "role": "System Manager", 
    "write": 1
   }
  ], 

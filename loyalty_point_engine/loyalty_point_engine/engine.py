@@ -7,9 +7,9 @@ from frappe import _
 import time
 import itertools
 from frappe.utils import getdate, add_months, nowdate
-from frappe.utils.data import today, nowtime, cint, cstr
+from frappe.utils.data import today, nowtime, cint, cstr, flt
 from loyalty_point_engine.loyalty_point_engine.doctype.rule.rule import get_vsibility_setting
-from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_jv, get_payable_acc
+from loyalty_point_engine.loyalty_point_engine.accounts_handler import create_jv, get_payable_acc, get_marketing_account
 
 def initiate_point_engine(journal_voucher, sales_invoice_details):
 	valid_rules = get_applicable_rule()
@@ -31,7 +31,7 @@ def get_configurations(rule_type, rule_validity):
 def check_validity(rule_validity_checks_param):
 	valid_rules = []
 	for rule in rule_validity_checks_param:
-		rules = frappe.db.sql("select name from tabRule where %s "%make_cond(rule_validity_checks_param[rule]), as_list=1)
+		rules = frappe.db.sql("select name from tabRule where is_active = 1 %s "%make_cond(rule_validity_checks_param[rule]), as_list=1)
 		valid_rules.append(list(itertools.chain(*rules)))
 	rules = None
 	return list(itertools.chain(*valid_rules))
@@ -48,7 +48,7 @@ def make_cond(validity_list):
 		if 'end_time' in param:
 			cond_list.append(" %s >= '%s' "%(param, nowtime()))
 			
-	return ' and '.join(cond_list)
+	return ' and ' + ' and '.join(cond_list)
 
 def get_ruel_details(rules):
 	rule_details = {}
@@ -65,7 +65,6 @@ def calulate_points(rule_details, journal_voucher, sales_invoice_details):
 	referral_points = 0
 	valid_modes = []
 	debit_to, credit_to = get_accouts(sales_invoice_details.customer, sales_invoice_details.company)
-	frappe.errprint(rule_details)
 	for rule in rule_details:
 		rule_based_points = 0
 		valid_modes = valid_payment_modes(rule_details[rule], journal_voucher)
@@ -73,7 +72,6 @@ def calulate_points(rule_details, journal_voucher, sales_invoice_details):
 			rule_based_points += calc_basic_points(rule_details[rule], something(valid_modes, journal_voucher))
 			if rule_details[rule].get('is_lp_mumtiplier') == 1:
 				rule_based_points = multiplier_points(rule_details[rule], rule_based_points)
-			frappe.errprint(rule_based_points)
 			make_point_entry(rule_based_points, rule_details[rule], sales_invoice_details, debit_to, credit_to)
 
 		if within_referral_count(sales_invoice_details, rule_details[rule]) == 1:
@@ -115,16 +113,16 @@ def make_point_entry(points_earned, rule_details, sales_invoice_details, debit_t
 	create_earned_points_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to)
 	
 def create_earned_points_entry(points_earned, rule_details, sales_invoice_details, debit_to, credit_to):
-	frappe.errprint(rule_details)
 	create_point_transaction('Customer', sales_invoice_details.customer, sales_invoice_details.name,  'Earned', points_earned, rule_details)
-	create_jv(sales_invoice_details, points_earned, debit_to, credit_to)
+	conversion_factor = frappe.db.get_value('LPE Configuration', None, 'conversion_factor')
+	create_jv(sales_invoice_details, points_earned * flt(conversion_factor), debit_to, credit_to)
 
 def create_reddem_points_entry(rule_details, sales_invoice_details, debit_to, credit_to, journal_voucher):
 	debit_to, credit_to = credit_to, debit_to
 	for entry in journal_voucher.entries:
-		frappe.errprint(entry.mode)
 		if entry.mode == "Redeem":
-			create_point_transaction('Customer', sales_invoice_details.customer, entry.against_invoice, 'Redeem', entry.credit)
+			conversion_factor = frappe.db.get_value('LPE Configuration', None, 'conversion_factor')
+			create_point_transaction('Customer', sales_invoice_details.customer, entry.against_invoice, 'Redeem', cint(flt(entry.credit) / flt(conversion_factor)))
 			create_jv(sales_invoice_details, sales_invoice_details.redeem_points, debit_to, credit_to)
 
 def create_point_transaction(ref_link, ref_name, inv, tran_type, points, rule_details=None):
@@ -149,7 +147,8 @@ def make_referred_points_entry(sales_invoice_details, referral_points):
 		create_jv(sales_invoice_details, referral_points, debit_to, credit_to)
 
 def get_accouts(party, company):
-	return get_payable_acc(party), frappe.db.get_value('Company', company, 'default_cash_account')
+	"marketing account is debit account and customer's loyalty account is credit account"
+	return get_marketing_account(company), get_payable_acc(party)
 
 def something(valid_modes, journal_voucher):
 	total = 0
